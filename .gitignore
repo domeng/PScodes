@@ -1,0 +1,7 @@
+#c
+*.o
+*.obj
+
+#python
+*.pyc
+__pycache__/
