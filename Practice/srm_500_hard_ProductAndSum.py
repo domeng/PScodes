@@ -1,5 +1,5 @@
 # https://community.topcoder.com/stat?c=problem_statement&pm=11345
-
+# in real, it would be failed (TLE, 3.6s for the worst case)
 def measure(func):
   import datetime
   def measure_call(*args, **kwargs):
