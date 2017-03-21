@@ -1,10 +1,39 @@
 #include <vector>
 #include <algorithm>
+#include <memory.h>
 using namespace std;
+
 long long dp[1001][1001];
 long long dp0[1001][1001];
 long long dpL[1001][1001];
 long long dpR[1001][1001];
+
+long long FTreeU[2001][2005];
+long long FTreeV[2001][2005];
+
+//find max value dp[a][b] where b<=y and |x-a|==y-b
+//it means x-y==a-b or x+y==a+b
+//replace with -x+y=u_x,x+y=v_x then u_x==u_a or v_x==v_a
+
+void tree_add(int x,int y,long long value)
+{
+  int u=y-x+1000;
+  int v=y+x;
+  //printf("register %d %d = %d %d = %lld\n",x,y,u,v,value);
+  for (int vv=v+1;vv<=2001;vv+=(vv&-vv)) FTreeV[u][vv] = max(FTreeV[u][vv], value);
+  for (int uu=u+1;uu<=2001;uu+=(uu&-uu)) FTreeU[v][uu] = max(FTreeU[v][uu], value);
+}
+long long tree_get_max(int x,int y)
+{
+  int u=y-x+1000;
+  int v=x+y;
+  long long ret = 0;
+  for (int vv=v+1;vv;vv-=(vv&-vv)) ret = max(ret, FTreeV[u][vv]);
+  for (int uu=u+1;uu;uu-=(uu&-uu)) ret = max(ret, FTreeU[v][uu]);
+  //printf("get %d %d = %d %d = %lld\n",x,y,u,v,ret);
+  return ret;
+}
+
 struct FoxSearchingRuins
 {
   long long theMinTime(int W, int H, int N, int LR, int Tar, int timeX, int timeY, vector<int> seeds)
@@ -33,15 +62,8 @@ struct FoxSearchingRuins
       //DP0
       for (int t=begin;t<end;t++) for (int lr=0;lr<=LR;lr++)
       {
-        dp0[t][lr] = v[index[t]];//base
-        //SLOW PART
-        for (int q=0;q<begin;++q)
-        {
-          int dx = x[index[q]] - x[index[t]];
-          if (dx<0) dx=-dx;
-          if (dx>lr) continue;
-          dp0[t][lr] = max(dp0[t][lr], dp[q][lr-dx] + v[index[t]]);
-        }
+        long long cur_max = tree_get_max(x[index[t]],lr);
+        dp0[t][lr] = max(dp0[t][lr], cur_max + v[index[t]]);
       }
       //L->R
       for (int t=begin;t<end;t++) for (int lr=0;lr<=LR;lr++)
@@ -71,6 +93,7 @@ struct FoxSearchingRuins
       for (int t=begin;t<end;t++) for (int lr=0;lr<=LR;lr++)
       {
         dp[t][lr] = max(dpL[t][lr],dpR[t][lr]);
+        tree_add(x[index[t]],lr,dp[t][lr]);
         if (dp[t][lr] >= Tar)
         {
           long long need = ((long long)timeX) * lr + ((long long)timeY) * y[index[t]];
@@ -85,11 +108,25 @@ struct FoxSearchingRuins
 
 int main()
 {
+  auto clear = [&]{
+    memset(FTreeU,0,sizeof(FTreeU));
+    memset(FTreeV,0,sizeof(FTreeV));
+    memset(dp,0,sizeof(dp));
+    memset(dp0,0,sizeof(dp0));
+    memset(dpL,0,sizeof(dpL));
+    memset(dpR,0,sizeof(dpR));
+  };
+  clear();
   printf("---\n%lld\n",FoxSearchingRuins().theMinTime(5,8,5,7,10,3,1,{979, 777, 878, 646, 441, 545, 789, 896, 987, 10}));
+  clear();
   printf("---\n%lld\n",FoxSearchingRuins().theMinTime(7,8,10,3,10,3,10,{0, 1, 1, 0, 1, 3, 1011, 3033, 2022, 10}));
+  clear();
   printf("---\n%lld\n",FoxSearchingRuins().theMinTime(7,8,10,3,14,3,10,{0, 1, 1, 0, 1, 3, 1011, 3033, 2022, 10}));
+  clear();
   printf("---\n%lld\n",FoxSearchingRuins().theMinTime(7,8,10,4,14,3,10,{0, 1, 1, 0, 1, 3, 1011, 3033, 2022, 10}));
+  clear();
   printf("---\n%lld\n",FoxSearchingRuins().theMinTime(497,503,989,647,100000,13,14,{7613497, 5316789, 1334537, 2217889, 6349551, 978463, 1234567, 2345678, 3456789, 1000}));
+  clear();
   printf("---\n%lld\n",FoxSearchingRuins().theMinTime(1000,749613275,1000,1000,7500000,97,6,{224284427, 617001937, 294074399, 606566321, 202762619, 419798101, 200613401, 640663967, 417565817, 170000}));
   return 0;
 }
