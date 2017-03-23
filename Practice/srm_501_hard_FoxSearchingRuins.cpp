@@ -5,11 +5,10 @@ using namespace std;
 
 long long dp[1001][1001];
 long long dp0[1001][1001];
-long long dpL[1001][1001];
 long long dpR[1001][1001];
 
-long long FTreeU[2001][2005];
-long long FTreeV[2001][2005];
+long long FTreeU[2001][1005];
+long long FTreeV[2001][1005];
 
 //find max value dp[a][b] where b<=y and |x-a|==y-b
 //it means x-y==a-b or x+y==a+b
@@ -19,18 +18,22 @@ void tree_add(int x,int y,long long value)
 {
   int u=y-x+1000;
   int v=y+x;
-  //printf("register %d %d = %d %d = %lld\n",x,y,u,v,value);
-  for (int vv=v+1;vv<=2001;vv+=(vv&-vv)) FTreeV[u][vv] = max(FTreeV[u][vv], value);
-  for (int uu=u+1;uu<=2001;uu+=(uu&-uu)) FTreeU[v][uu] = max(FTreeU[v][uu], value);
+  for (int yy=y+1;yy<=1001;yy+=(yy&-yy)) 
+  {
+    FTreeV[v][yy] = max(FTreeV[v][yy], value);
+    FTreeU[u][yy] = max(FTreeU[u][yy], value);
+  }
 }
 long long tree_get_max(int x,int y)
 {
   int u=y-x+1000;
   int v=x+y;
   long long ret = 0;
-  for (int vv=v+1;vv;vv-=(vv&-vv)) ret = max(ret, FTreeV[u][vv]);
-  for (int uu=u+1;uu;uu-=(uu&-uu)) ret = max(ret, FTreeU[v][uu]);
-  //printf("get %d %d = %d %d = %lld\n",x,y,u,v,ret);
+  for (int yy=y+1;yy;yy-=(yy&-yy))
+  {
+    ret = max(ret, FTreeV[v][yy]);
+    ret = max(ret, FTreeU[u][yy]);
+  }
   return ret;
 }
 
@@ -68,13 +71,13 @@ struct FoxSearchingRuins
       //L->R
       for (int t=begin;t<end;t++) for (int lr=0;lr<=LR;lr++)
       {
-        dpL[t][lr] = dp0[t][lr];
+        dp[t][lr] = dp0[t][lr];
         if (t>begin)
         {
           int dx = x[index[t-1]] - x[index[t]];
           if (dx<0) dx=-dx;
           if (dx>lr) continue;
-          dpL[t][lr] = max(dpL[t][lr], dpL[t-1][lr-dx] + v[index[t]]);
+          dp[t][lr] = max(dp[t][lr], dp[t-1][lr-dx] + v[index[t]]);
         }
       }
       //R->L
@@ -92,7 +95,7 @@ struct FoxSearchingRuins
       //Summarize
       for (int t=begin;t<end;t++) for (int lr=0;lr<=LR;lr++)
       {
-        dp[t][lr] = max(dpL[t][lr],dpR[t][lr]);
+        dp[t][lr] = max(dp[t][lr],dpR[t][lr]);
         tree_add(x[index[t]],lr,dp[t][lr]);
         if (dp[t][lr] >= Tar)
         {
@@ -109,12 +112,11 @@ struct FoxSearchingRuins
 int main()
 {
   auto clear = [&]{
-    memset(FTreeU,0,sizeof(FTreeU));
-    memset(FTreeV,0,sizeof(FTreeV));
     memset(dp,0,sizeof(dp));
     memset(dp0,0,sizeof(dp0));
-    memset(dpL,0,sizeof(dpL));
     memset(dpR,0,sizeof(dpR));
+    memset(FTreeU,0,sizeof(FTreeU));
+    memset(FTreeV,0,sizeof(FTreeV));
   };
   clear();
   printf("---\n%lld\n",FoxSearchingRuins().theMinTime(5,8,5,7,10,3,1,{979, 777, 878, 646, 441, 545, 789, 896, 987, 10}));
