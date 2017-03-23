@@ -5,7 +5,6 @@ using namespace std;
 
 long long dp[1001][1001];
 long long dp0[1001][1001];
-long long dpR[1001][1001];
 
 long long FTreeU[2001][1005];
 long long FTreeV[2001][1005];
@@ -83,19 +82,18 @@ struct FoxSearchingRuins
       //R->L
       for (int t=end-1;t>=begin;t--) for (int lr=0;lr<=LR;lr++)
       {
-        dpR[t][lr] = dp0[t][lr];
         if (t+1<end)
         {
           int dx = x[index[t+1]] - x[index[t]];
           if (dx<0) dx=-dx;
           if (dx>lr) continue;
-          dpR[t][lr] = max(dpR[t][lr], dpR[t+1][lr-dx] + v[index[t]]);
+          dp0[t][lr] = max(dp0[t][lr], dp0[t+1][lr-dx] + v[index[t]]);
         }
       }
       //Summarize
       for (int t=begin;t<end;t++) for (int lr=0;lr<=LR;lr++)
       {
-        dp[t][lr] = max(dp[t][lr],dpR[t][lr]);
+        dp[t][lr] = max(dp[t][lr],dp0[t][lr]);
         tree_add(x[index[t]],lr,dp[t][lr]);
         if (dp[t][lr] >= Tar)
         {
@@ -114,7 +112,6 @@ int main()
   auto clear = [&]{
     memset(dp,0,sizeof(dp));
     memset(dp0,0,sizeof(dp0));
-    memset(dpR,0,sizeof(dpR));
     memset(FTreeU,0,sizeof(FTreeU));
     memset(FTreeV,0,sizeof(FTreeV));
   };
