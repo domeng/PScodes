@@ -19,7 +19,7 @@ int solve(int bit, int statFlag)
   }
   for (int i=0;i<N;++i)
   {
-    if ((statFlag&(1<<i))!=0 || ((Limit[i]>>bit)&1!=0)) //stat is free or limit has this number
+    if ((statFlag&(1<<i))!=0 || ((Limit[i]>>bit)&1)!=0) //stat is free or limit has this number
     {
       int nextStatFlag = statFlag;
       for (int j=0;j<N;++j)
