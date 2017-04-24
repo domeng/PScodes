@@ -7,91 +7,72 @@ def possible(a,b):
     return a[0] == 'B'
   return False
 
-def possible_0(a,b):
-  if len(a)<1:
-    return False
-  c = [len(a)-1,len(b)-1]
-  i = 0
-  while c[0] >=0 or c[1]>=0:
-    if i == 0:
-      if c[0] < 0:
-        return False
-      z = a[c[0]]
-      c[0]-=1
-    else:
-      if c[1] < 0:
-        return False
-      z = b[c[1]]
-      c[1]-=1
-    i = 0 if z=='A' else 1
-  return True
-
-def sim(prog):
-  stk = ['','']
-  z = 0
-  for i in prog:
-    stk[z] += i
-    z = 0 if i == 'A' else 1
-  return stk[0][::-1]+stk[1][::-1]
-
-cnt = 0
-sss = set()
-dps = [[0]*19 for _ in range(5)]
-def gens(A,B,C,tar,stk,sid,prog):
-  if tar == '':
-    global cnt,sss
-    print (cnt,prog)
-    meet = 0
-    done = 0
-    for i in range(len(prog)):
-      if prog[i]=='C':
-        dps[meet][done] += 1
-        meet += 1
-      else:
-        done += 1
-    cnt+=1
-  if A>0:
-    x = stk[sid]
-    stk[sid] += 'A'
-    gens(A-1,B,C,tar,stk,0,prog+'A')
-    stk[sid] = x
-  if B>0:
-    x = stk[sid]
-    stk[sid] += 'B'
-    gens(A,B-1,C,tar,stk,1,prog+'B')
-    stk[sid] = x
-  if C>0:
-    gen = stk[0][::-1] + stk[1][::-1]
-    if tar.startswith(gen):
-      gens(A,B,C-1,tar[len(gen):],['',''],0,prog+'C')
-
+import copy
 class Stackol:
   def countPrograms(self,fr, k):
-    out = "".join(fr)
-    #gens(out.count('A'),out.count('B'),k,out,['',''],0,'')
-    out = "|" + out
+    mod = 1000**3 + 7
+    out = "".join(fr) 
     n = len(out)
-    cnt = [0] * n
-    cnt[0] = 1
-    ret = 0
-    x = []
+    t_cnt = [[0]*(n+1) for _ in range(n)]
+    def ab_gen(li):
+      z = [0,0]
+      for e in li:
+        z[ord(e)-ord('A')] += 1
+        yield tuple(z)
+      yield tuple(z)
+    t_ab = list(ab_gen(out))
+    As = [i for i in range(n) if out[i]=='A']
+    Bs = [i for i in range(n) if out[i]=='B']
+    out += '|'
+    import pdb
+    for i in range(n):
+      for s in range(i,n):
+        B_in_alpha = t_ab[s][1] #alpha : [i,s]
+        if i > 0:
+          B_in_alpha -= t_ab[i-1][1]
+        if B_in_alpha == 0:
+          t_cnt[i][s] += 1
+          t_cnt[i][s+1] -= 1
+          continue
+        if out[i] == 'B' and out[s+1] == 'A': #both ends are ok
+          least_A,too_much_A = B_in_alpha-1,B_in_alpha+1
+        elif out[i] == 'B' and out[s+1] != 'A': #beta end only
+          least_A,too_much_A = B_in_alpha-1,B_in_alpha
+        elif out[i] == 'A' and out[s+1] == 'A': #alpha end only
+          least_A,too_much_A = B_in_alpha,B_in_alpha+1
+        else: #impossible
+          continue
+        # least_A <= A_in_beta < too_much_A
+        if least_A == 0:
+          near = s
+        elif len(As) > t_ab[s][0] + least_A - 1:
+          near = As[t_ab[s][0] + least_A - 1]
+        else:
+          continue
+        if len(As) > t_ab[s][0] + too_much_A - 1:
+          far = As[t_ab[s][0] + too_much_A - 1]
+        else:
+          far = n 
+        t_cnt[i][near] += 1
+        t_cnt[i][far] -= 1
+      for s in range(1,n):
+        t_cnt[i][s] += t_cnt[i][s-1]
+        t_cnt[i][s] %= mod
+    t_dp = [0] * n
+    ans = 0
     for _ in range(k):
-      next = [0] * n 
-      next[0] += cnt[0]
-      for b in range(1,n):
-        next[b] += cnt[b]
-        for e in range(b,n):
-          for j in range(b,e+1):
-            A = out[b:j+1]
-            B = out[j+1:e+1] if j<e else ''
-            if possible_0(A,B):
-              x.append(out[b:e+1])
-              next[e] += cnt[b-1]
-      ret += next[-1]
-      print(next)
-      cnt = next
-    print(ret)
-    return ret
+      next = copy.deepcopy(t_dp)
+      for i in range(n):
+        for j in range(i,n): #[i,j]
+          if i==0:
+            next[j] += t_cnt[i][j]
+          else:
+            next[j] += (t_dp[i-1] * t_cnt[i][j])% mod
+      ans += next[-1]
+      t_dp = next
+    print(ans)
+    return ans
+
 
 '''
 print(possible('B',''))
@@ -100,9 +81,12 @@ print(possible('B','B'))
 print(possible('AAAAABAAAAAA',''))
 print(possible('BA','AB'))
 '''
+#Stackol().countPrograms(["ABABAB"],1)
 #Stackol().countPrograms(["ABAB"],3)
-Stackol().countPrograms(["A"],2)
-Stackol().countPrograms(["AAAA","BABA"],1)
-Stackol().countPrograms(["AB"],2)
-Stackol().countPrograms(["AAABABABAABA","AA","BBAB"],3)
-Stackol().countPrograms(["AAAAAAAAAAAA","B"],4)
+#Stackol().countPrograms(["A"],2)
+#Stackol().countPrograms(["AAAA","BABA"],1)
+#Stackol().countPrograms(["AB"],2)
+#Stackol().countPrograms(["AAABABABAABA","AA","BBAB"],3)
+#Stackol().countPrograms(["AAAAAAAAAAAA","B"],4)
+
+Stackol().countPrograms(["BBAAAAABBAAABABAABBBAABABABAABBBAABAABBAABABABAAAA", "BAAABAAABABBABABBABBBBAAABBABBBABBAABBBAABBBABBBAA", "ABBBBAAABBBAABAABAABBAAABBBBBAABBABABBBBBAABBABBBB", "BBBABABBABBABABAABBBABABBBBBBBABBAABBABAAABABABBAA", "ABBBBBBAAAABAABAABABAAABBAAAABABAABBBAAAAABABBABAB", "AABABABABBAAABAABAABBABBBABBBBAAAAABAABABAABBBAAAB", "ABAAABABAAABAAAABBBBBBAABABBABABABABAABAAAAABBBABA", "ABAABABAAAAABABAABABBABAAAAAABBABAAAABAAABBBABBBAA", "BAAAAAAAABABBAAABBBBBAAAAABABBABABBBBABBBBABBABAAA", "BABAABBAAABAABBABAABAAABBAAABBBAABBABAABABBAAABABA", "BBABBBBAAAAAAABAAABBBBBABAABBABBBAABBBABAAABBAABBA", "AAABBBABAAAABAABBBABBBABBAAABBBBABBAAAAABBBAAABBAA", "ABBABAABBBABAAAABBABBABAABAAAAABAAABAAAABBABAABABA", "BBABBAABAABABABAABBABBABABABBABBBABABABAAAAABBABBA", "BAAAAAAABABBAAAABABABBABBAABBABBAAABBAAABAAAABAABA", "BBAABABBBAAAABAAABABAAABAAABABABBBAABBABBBBBAAAABA", "BABBAAAAAAAAAABAAABBBAAAAABBBBBABABABBBAABABBABABA", "BAABBAABBABBBBAABBBBBABABABAABBBABAABBBBBABAAABBAB", "AABBAAABBABAABBBBAABBBABAAABAABABABABABABBBABABABB", "BABBAAAAAABBAABABAAABAABAABBAAABAAAABBBBBAAAAAAAAA", "BBBBABBABABABABBBBBBBBBBBAAAABAABABABAAABAAABAAABA", "AAAAABABAAABAABBBAAAAAAAAABAABABBABBBABAABAABBAAAA", "AAABBBBBAABBAABBABBBBBAAABBBABBABBAAAAAAABABBBBAAA", "BAABBABABBAAABAAABBABBAAABBABABBAABAAABABBBBABABAA", "ABBBBBBABBBABABAABBABABAABBBBABABBBABBBBABABBBABAB", "AAABBBBBABBBABAABABAABABAABAABABBBABBAABBBABAAABBA", "BABBBBBAABBBAABAABBABAABABAAABABBBBBAABBABBAAAABBA", "BBAAAAABBBBBABBABAABAAAABBBABBAABAAABABABAABABABBA", "BAABBAAABBBABBABBABBBABABBBABBABBAAABBABBBABABAABB", "BAABABBBAAABBBABAAAABABBBBBAABBAABABBAAABBABAAABAB", "AABBABBAABBAAABBAABBBAAABBAAAABAAAABBBABAABBBBABBA", "BAAABAAAABABBABBAABABABBBAABAABAAABBAAABBBBBBABAAB", "BBBAAABBBBBBABAAABABBBAAAAAAAAAAAAABBABABBAABBAAAB", "BAAABBBBAAABBAAABAABBABBBABAABABBBAABABAAABAAABABA", "AAAAAABABAAABBABABBAABABABBBAABBABBABBBAAAAAABBABB", "AAAABAABBAAAABAAABABBBABABBBABAABBBABABAABABABABAB", "BBBABBBABAABBAABABAABABBAAAAABBBBABBABABBABBAABABA", "ABAABBBBAAABBABABAABABBBAABBAAABAAABABABBAABAAABAA", "BABAAAAAAABBAAABAABABAAABBAABBAABBABBABBBAAABAABAB", "AABABBAABBBAAABBBABBBAAAABBAAABBBBABAABAABABABABBA", "AAAAAABAABAAABBABBBAAAAABAAAABAABBABBBAABBAABBABBA", "AABABAABABAAABABAABABABABBAAAAAABAABBBBAAABABAABBB", "AABBBAAAAAAABBBBABBAAAAABABBBBAAAABABAAAAABABAABBB", "BBBBAABBAAAAABBBAAAAABBABAAABBBAAABAABABBBBBBBBBAA", "ABAAABBBBBBABBBAABAABAAAAAABBABBAABAAAAABAABBBBAAB", "BBAABBBABBABBAAAAABBABBBABABBAAAAABABAAAABBBABBABB", "AAAABBAAABAAAAAAABABAABBBBAABAABBAABABBBAABBAABABA", "BABABBABABABABBBAABBABBABABABAABBAAABBBABBAABAAAAA", "BBABAABABBABBABABABBBAAAAABAAAABABABBAABABAABBBBAB", "BBAAAAAABBABAAABBABAABBBAABAABABABBBABAAABBBBBBAAA"],10)
