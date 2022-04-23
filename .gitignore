@@ -1,9 +1,0 @@
-#c
-*.o
-*.obj
-
-#python
-*.pyc
-__pycache__/
-
-a.exe
